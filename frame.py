@@ -6,6 +6,8 @@ import math
 import random
 from particle import Particle
 from dealer import Client
+import threading
+import sys
 
 # particles lift storing all the particles
 particles = []
@@ -34,7 +36,42 @@ x, y = 0, 0
 
 # define car and map renderer
 car = Car(0, 0, 90, WIDTH / 2, HEIGHT / 2)
-level = Map(3, car)
+level = Map("spa", car)
+threading.Thread(target=level.scalef, daemon=True, args=((car.x, car.y),)).start()
+font = pygame.font.SysFont("microsoftsansserif", 50)
+
+r = 0
+while not level.scaled:
+    # update listener
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+
+    # backgorund
+    screen.fill(C.white)
+    text = font.render("Loading assets...", True, (0, 0, 0))
+    screen.blit(
+        text,
+        (
+            (screen.get_width() / 2) - 200,
+            (screen.get_height() / 2) - 100,
+        ),
+    )
+    r += 1
+    draw(
+        screen,
+        screen.get_width() / 2,
+        screen.get_height() / 2,
+        r,
+        l1,
+        l2,
+        l3,
+        l4,
+        l5,
+        2.5,
+    )
+    pygame.display.update()
+    # clock.tick(FPS)
 
 
 # define interpolation function
@@ -102,7 +139,7 @@ while running:
     # render the map
     level.draw(screen, car, (car.yo, car.xo))
     middle_color = screen.get_at((car.xo, car.yo))
-    if middle_color == (0, 0, 0, 255):
+    if middle_color == (255, 0, 0, 255):
         is_on_ground = True
 
     # render particles

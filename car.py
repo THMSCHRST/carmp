@@ -119,14 +119,14 @@ class Car:
         self.v -= self.v / self.power
 
 
-def draw(screen, xo, yo, r, l1, l2, l3, l4, l5):
+def draw(screen, xo, yo, r, l1, l2, l3, l4, l5, scale=2.5):
     # print("from carr", xo, yo, xo, yo)
     r -= 90
     frect = None
     for i in range(5):
         rotated = pygame.transform.rotate(l1, r)
 
-        transformed_img = pygame.transform.scale_by(rotated, 2.5)
+        transformed_img = pygame.transform.scale_by(rotated, scale)
 
         rect = transformed_img.get_rect(center=(xo, yo - i))
         frect = rect
@@ -135,7 +135,7 @@ def draw(screen, xo, yo, r, l1, l2, l3, l4, l5):
     for i in range(3):
         rotated = pygame.transform.rotate(l2, r)
 
-        transformed_img = pygame.transform.scale_by(rotated, 2.5)
+        transformed_img = pygame.transform.scale_by(rotated, scale)
 
         rect = transformed_img.get_rect(center=(xo, yo - i - 5))
 
@@ -144,7 +144,7 @@ def draw(screen, xo, yo, r, l1, l2, l3, l4, l5):
     for i in range(2):
         rotated = pygame.transform.rotate(l3, r)
 
-        transformed_img = pygame.transform.scale_by(rotated, 2.5)
+        transformed_img = pygame.transform.scale_by(rotated, scale)
 
         rect = transformed_img.get_rect(center=(xo, yo - i - 10))
 
@@ -153,7 +153,7 @@ def draw(screen, xo, yo, r, l1, l2, l3, l4, l5):
     for i in range(5):
         rotated = pygame.transform.rotate(l4, r)
 
-        transformed_img = pygame.transform.scale_by(rotated, 2.5)
+        transformed_img = pygame.transform.scale_by(rotated, scale)
 
         rect = transformed_img.get_rect(center=(xo, yo - i - 15))
 
@@ -162,7 +162,7 @@ def draw(screen, xo, yo, r, l1, l2, l3, l4, l5):
     for i in range(1):
         rotated = pygame.transform.rotate(l5, r)
 
-        transformed_img = pygame.transform.scale_by(rotated, 2.5)
+        transformed_img = pygame.transform.scale_by(rotated, scale)
 
         rect = transformed_img.get_rect(center=(xo, yo - i - 20))
 
