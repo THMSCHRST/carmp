@@ -98,11 +98,15 @@ class Car:
                 self.rv += (self.v / (21 - self.handling)) / 2
             if keys[pygame.K_d]:
                 self.rv -= (self.v / (21 - self.handling)) / 2
+            if keys[pygame.K_s]:
+                self.v -= 0.5
         else:
             left_x = round(joystick.get_axis(0), 3)
             self.rv -= ((self.v / (21 - self.handling)) / 2) * left_x * 2
             rt = round(joystick.get_axis(5), 3)
+            lt = round(joystick.get_axis(4), 3)
             self.v += 0.5 * max(rt, 0)
+            self.v -= 0.5 * max(lt, 0)
         self.r += self.rv
         self.rv *= 0.95
         xdiff, ydiff = move_in_direction(self.x, self.y, self.r, self.v)  # step 4

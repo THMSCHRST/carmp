@@ -69,6 +69,8 @@ carvelmp = {}
 oldcarvelmp = {}  # 1 frame older than carvelmp
 carposmp = {}
 
+is_on_ground = True  # bool if the car is on road
+
 # bool used for 30fps networking
 send = True
 
@@ -99,6 +101,9 @@ while running:
 
     # render the map
     level.draw(screen, car, (car.yo, car.xo))
+    middle_color = screen.get_at((car.xo, car.yo))
+    if middle_color == (0, 0, 0, 255):
+        is_on_ground = True
 
     # render particles
     for p in particles[:]:
