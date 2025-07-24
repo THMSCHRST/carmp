@@ -1,5 +1,3 @@
-# fix resize causing client server pos desync
-
 import pygame
 from colors import C
 from car import Car, move_in_direction, draw
@@ -95,7 +93,7 @@ while running:
 
     # spawn the player at correct pos
     if not spawned:
-        car.x, car.y = level.rstartpos[0] - car.xo, level.rstartpos[1] - car.yo
+        car.x, car.y = level.rstartpos[0], level.rstartpos[1]
         oldpos = (car.x, car.y)
         spawned = True
 
