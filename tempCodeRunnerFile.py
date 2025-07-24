@@ -1,0 +1,1 @@
+car.x, car.y, car.r

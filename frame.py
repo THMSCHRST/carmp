@@ -1,0 +1,358 @@
+# add interpolation
+# fix tire particle
+# fix resize causing client server pos desync
+
+import pygame
+from colors import C
+from car import Car, move_in_direction, draw
+from map2 import Map
+import math
+import random
+from particle import Particle
+from dealer import Client
+
+particles = []
+
+pygame.init()
+
+WIDTH, HEIGHT = 800, 800
+FPS = 60
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True, flags=pygame.RESIZABLE)
+pygame.display.set_caption("CAR")
+clock = pygame.time.Clock()
+
+l1 = pygame.image.load(r"assets\pl1.png").convert_alpha()
+l2 = pygame.image.load(r"assets\pl2.png").convert_alpha()
+l3 = pygame.image.load(r"assets\pl3.png").convert_alpha()
+l4 = pygame.image.load(r"assets\pl4.png").convert_alpha()
+l5 = pygame.image.load(r"assets\pl5.png").convert_alpha()
+
+
+x, y = 0, 0
+
+car = Car(0, 0, 90, WIDTH / 2, HEIGHT / 2)
+level = Map(3, car)
+
+
+def lerp(a, b, t):
+    return (1 - t) * a + t * b
+
+
+def distance(a, b):
+    return math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+
+
+def line(color, p1, p2, thickness):
+    tp1 = (p1[0] + x, p1[1] + y)
+    tp2 = (p2[0] + x, p2[1] + y)
+    pygame.draw.line(screen, color, tp1, tp2, thickness)
+
+
+spawned = False
+
+oldvel = (0, 0)
+oldpos = (0, 0)
+
+client = Client(f"user{random.randint(1,999)}")
+
+carvelmp = {}
+oldcarvelmp = {}
+carposmp = {}
+
+send = True
+
+running = True
+while running:
+    car.xo = screen.get_width() / 2
+    car.yo = screen.get_height() / 2
+    x, y = car.x, car.y
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    screen.fill(C.gray)
+
+    if not spawned:
+        car.x, car.y = level.rstartpos[0] - car.xo, level.rstartpos[1] - car.yo
+        oldpos = (car.x, car.y)
+        spawned = True
+
+    level.draw(screen, car)
+
+    for p in particles[:]:
+        p.tick(screen, car)
+        if not p.life:
+            particles.remove(p)
+
+    car.tick()
+    car.draw(screen)
+    if send:
+        for item in client.cars:
+            if item[3] != car.id:
+                carposmp[item[3]] = (item[0], item[1])
+        client.tick((round(car.x), round(car.y), round(car.r), car.id, car.xv, car.yv))
+        send = False
+    else:
+        #        for item in client.cars:
+        #            if item[3] != car.id:
+        #                print(item[4], item[5])
+        #                item = (
+        #                    item[0] + item[4] * 2,
+        #                    item[1] + item[5] * 2,
+        #                    item[2],
+        #                    item[3],
+        #                    item[4],
+        #                    item[5],
+        #                )
+        send = True
+
+    for item in client.cars:
+        if item[3] != car.id:
+            try:
+                if send or carposmp == {}:
+                    particlepos = (item[0], item[1])
+                else:
+                    particlepos = (
+                        lerp(
+                            carposmp[item[3]][0],
+                            item[0],
+                            0.5,
+                        ),
+                        lerp(carposmp[item[3]][1], item[1], 0.5),
+                    )
+                if send or carvelmp == {}:
+                    if (
+                        min(
+                            distance(
+                                (
+                                    lerp(
+                                        oldcarvelmp[item[3]][0],
+                                        carvelmp[item[3]][0],
+                                        0.5,
+                                    ),
+                                    lerp(
+                                        oldcarvelmp[item[3]][1],
+                                        carvelmp[item[3]][1],
+                                        0.5,
+                                    ),
+                                ),
+                                (
+                                    lerp(carvelmp[item[3]][0], item[4], 0.5),
+                                    lerp(carvelmp[item[3]][1], item[5], 0.5),
+                                ),
+                            ),
+                            150,
+                        )
+                        > random.randint(15, 150) / 100
+                    ):
+                        particles.append(
+                            Particle(
+                                "cloud",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0.5,
+                            )
+                        )
+                    if (
+                        min(
+                            distance(
+                                (
+                                    lerp(
+                                        oldcarvelmp[item[3]][0],
+                                        carvelmp[item[3]][0],
+                                        0.5,
+                                    ),
+                                    lerp(
+                                        oldcarvelmp[item[3]][1],
+                                        carvelmp[item[3]][1],
+                                        0.5,
+                                    ),
+                                ),
+                                (
+                                    lerp(carvelmp[item[3]][0], item[4], 0.5),
+                                    lerp(carvelmp[item[3]][1], item[5], 0.5),
+                                ),
+                            ),
+                            150,
+                        )
+                        > random.randint(25, 150) / 100
+                    ):
+                        particles.append(
+                            Particle(
+                                "cloud2",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0.5,
+                            )
+                        )
+                    if (
+                        min(
+                            distance(
+                                (
+                                    lerp(
+                                        oldcarvelmp[item[3]][0],
+                                        carvelmp[item[3]][0],
+                                        0.5,
+                                    ),
+                                    lerp(
+                                        oldcarvelmp[item[3]][1],
+                                        carvelmp[item[3]][1],
+                                        0.5,
+                                    ),
+                                ),
+                                (
+                                    lerp(carvelmp[item[3]][0], item[4], 0.5),
+                                    lerp(carvelmp[item[3]][1], item[5], 0.5),
+                                ),
+                            ),
+                            150,
+                        )
+                        > 0.75
+                    ):
+                        print("interpolate tire", particlepos)
+                        particles.append(
+                            Particle(
+                                "tire",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0,
+                                (120, 240),
+                            )
+                        )
+                else:
+                    print("normal")
+                    if (
+                        min(distance(carvelmp[item[3]], (item[4], item[5])), 150)
+                        > random.randint(15, 150) / 100
+                    ):
+                        particles.append(
+                            Particle(
+                                "cloud",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0.5,
+                            )
+                        )
+                    if (
+                        min(distance(carvelmp[item[3]], (item[4], item[5])), 150)
+                        > random.randint(25, 150) / 100
+                    ):
+                        particles.append(
+                            Particle(
+                                "cloud2",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0.5,
+                            )
+                        )
+                    if min(distance(carvelmp[item[3]], (item[4], item[5])), 150) > 1.5:
+                        print("tire", particlepos)
+                        particles.append(
+                            Particle(
+                                "tire",
+                                particlepos[0] + car.xo,
+                                particlepos[1] + car.yo,
+                                2.5,
+                                (-5, -13),
+                                0,
+                                (120, 240),
+                            )
+                        )
+            except Exception as e:
+                print(e)
+            if item[3] in carvelmp:
+                oldcarvelmp[item[3]] = carvelmp[item[3]]
+            carvelmp[item[3]] = (item[4], item[5])
+
+            if send or carposmp == {}:
+                draw(
+                    screen,
+                    -car.x + item[0] + car.xo,
+                    -car.y + item[1] + car.yo,
+                    item[2],
+                    l1,
+                    l2,
+                    l3,
+                    l4,
+                    l5,
+                )
+            else:
+                draw(
+                    screen,
+                    -car.x + lerp(carposmp[item[3]][0], item[0], 0.5) + car.xo,
+                    -car.y + lerp(carposmp[item[3]][1], item[1], 0.5) + car.yo,
+                    item[2],
+                    l1,
+                    l2,
+                    l3,
+                    l4,
+                    l5,
+                )
+
+    if min(distance(oldvel, (car.xv, car.yv)), 150) > random.randint(15, 150) / 100:
+        particles.append(
+            Particle(
+                "cloud",
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[0],
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[1],
+                2.5,
+                (-5, -13),
+                0.5,
+            )
+        )
+
+    if min(distance(oldvel, (car.xv, car.yv)), 150) > random.randint(25, 150) / 100:
+        particles.append(
+            Particle(
+                "cloud2",
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[0],
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[1],
+                2.5,
+                (-5, -13),
+                0.5,
+            )
+        )
+
+    if min(distance(oldvel, (car.xv, car.yv)), 150) > 0.75:
+        particles.append(
+            Particle(
+                "tire",
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[0],
+                move_in_direction(
+                    oldpos[0] + car.xo, oldpos[1] + car.yo, car.r - 90, 0
+                )[1],
+                2.5,
+                (-5, -13),
+                0,
+                (120, 240),
+            )
+        )
+
+    oldvel = (car.xv, car.yv)
+    oldpos = (car.x, car.y)
+
+    pygame.display.update()
+    clock.tick(FPS)
+
+pygame.quit()
