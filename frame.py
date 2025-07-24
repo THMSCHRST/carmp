@@ -1,5 +1,3 @@
-# add interpolation
-# fix tire particle
 # fix resize causing client server pos desync
 
 import pygame
@@ -64,8 +62,11 @@ send = True
 
 running = True
 while running:
-    car.xo = screen.get_width() / 2
-    car.yo = screen.get_height() / 2
+    if car.xo != screen.get_width() / 2 or car.yo != screen.get_height() / 2:
+        car.x += (screen.get_width() / 2) - car.xo
+        car.y += (screen.get_width() / 2) - car.yo
+        car.xo = screen.get_width() / 2
+        car.yo = screen.get_height() / 2
     x, y = car.x, car.y
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -94,17 +95,6 @@ while running:
         client.tick((round(car.x), round(car.y), round(car.r), car.id, car.xv, car.yv))
         send = False
     else:
-        #        for item in client.cars:
-        #            if item[3] != car.id:
-        #                print(item[4], item[5])
-        #                item = (
-        #                    item[0] + item[4] * 2,
-        #                    item[1] + item[5] * 2,
-        #                    item[2],
-        #                    item[3],
-        #                    item[4],
-        #                    item[5],
-        #                )
         send = True
 
     for item in client.cars:
