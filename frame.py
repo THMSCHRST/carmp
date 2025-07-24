@@ -204,7 +204,6 @@ while running:
                         )
                         > 0.75
                     ):
-                        print("interpolate tire", particlepos)
                         particles.append(
                             Particle(
                                 "tire",
@@ -217,7 +216,6 @@ while running:
                             )
                         )
                 else:
-                    print("normal")
                     if (
                         min(distance(carvelmp[item[3]], (item[4], item[5])), 150)
                         > random.randint(15, 150) / 100
@@ -247,7 +245,6 @@ while running:
                             )
                         )
                     if min(distance(carvelmp[item[3]], (item[4], item[5])), 150) > 1.5:
-                        print("tire", particlepos)
                         particles.append(
                             Particle(
                                 "tire",
