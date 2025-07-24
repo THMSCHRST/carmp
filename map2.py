@@ -40,6 +40,6 @@ class Map:
             -car.y + self.startpos[1] * self.scale,
         )
 
-    def draw(self, screen, car):
+    def draw(self, screen, car, off):
         transformed_img = pygame.transform.scale_by(self.texture, self.scale)
-        screen.blit(transformed_img, (-car.x, -car.y))
+        screen.blit(transformed_img, (-car.x + off[0], -car.y + off[1]))

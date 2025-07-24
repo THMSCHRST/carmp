@@ -78,8 +78,8 @@ running = True
 while running:
     # make car centered client side and server side when the window is resized
     if car.xo != screen.get_width() / 2 or car.yo != screen.get_height() / 2:
-        car.x += (screen.get_width() / 2) - car.xo
-        car.y += (screen.get_width() / 2) - car.yo
+        # car.x += (screen.get_width() / 2) - car.xo
+        # car.y += (screen.get_width() / 2) - car.yo
         car.xo = screen.get_width() / 2
         car.yo = screen.get_height() / 2
     # update x,y clientside
@@ -100,7 +100,7 @@ while running:
         spawned = True
 
     # render the map
-    level.draw(screen, car)
+    level.draw(screen, car, (car.yo, car.xo))
 
     # render particles
     for p in particles[:]:
