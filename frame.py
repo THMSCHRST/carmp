@@ -151,6 +151,8 @@ while running:
     middle_color = screen.get_at((car.xo, car.yo))
     if middle_color == (255, 0, 0, 255):
         is_on_ground = True
+    else:
+        is_on_ground = False
     if debug:
         print(3)
 
@@ -164,6 +166,10 @@ while running:
 
     # update car
     car.tick()
+    if not is_on_ground:
+        car.v *= 0.9
+        car.xv *= 0.9
+        car.yv *= 0.9
     # render car
     if debug:
         print(5)
