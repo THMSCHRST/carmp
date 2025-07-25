@@ -161,11 +161,6 @@ while running:
     if debug:
         print(3)
 
-    # render particles
-    for p in particles[:]:
-        p.tick(screen, car)
-        if not p.life:
-            particles.remove(p)
     if debug:
         print(4)
 
@@ -179,6 +174,11 @@ while running:
     if debug:
         print(5)
     level.draw_tiles2(screen, car, (car.yo, car.xo))
+    # render particles
+    for p in particles[:]:
+        p.tick(screen, car)
+        if not p.life:
+            particles.remove(p)
     car.draw(screen)
     if debug:
         print(6)
