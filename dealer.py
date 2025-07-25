@@ -3,13 +3,13 @@ import pickle
 
 
 class Client:
-    def __init__(self, username):
+    def __init__(self, username, ip):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.DEALER)
 
         # Give each client a unique identity
         self.socket.setsockopt(zmq.IDENTITY, username.encode())
-        self.socket.connect("tcp://localhost:5555")
+        self.socket.connect(ip)
 
         # Send handshake
         self.socket.send_multipart([b"", f"handshake{username}".encode()])

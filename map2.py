@@ -10,6 +10,7 @@ class Map:
         self.rendpos = (0, 0)
         self.rstartpos = (0, 0)
         self.scaled = False
+        self.scaled2 = False
         self.startpos = ()
         self.endpos = []
         with open(rf"levels\{index}\options.txt", "r") as file:
@@ -65,7 +66,36 @@ class Map:
 
         elif not self.slicing_queue:
             self.scaled = True
-            print("✅ Finished slicing!")
+            print("Finished slicing")
+
+    def slice_step2(self):
+        if hasattr(self, "slicing_queue2") and self.slicing_queue2:
+            x, y = self.slicing_queue2.pop(0)
+            img_w = self.map.get_width()
+            img_h = self.map.get_height()
+
+            if x >= img_w or y >= img_h:
+                return
+
+            w = min(512, img_w - x)
+            h = min(512, img_h - y)
+
+            if w <= 0 or h <= 0:
+                return
+
+            try:
+                tile = self.map.subsurface(pygame.Rect(x, y, w, h)).copy()
+                scaled_tile = pygame.transform.scale_by(tile, self.scale)
+                self.tiles2.append((scaled_tile, x * self.scale, y * self.scale))
+                print(
+                    f"[TILE] Added scaled tile at ({x * self.scale}, {y * self.scale})"
+                )
+            except Exception as e:
+                print(f"[TILE] Error at ({x},{y}): {e}")
+
+        elif not self.slicing_queue:
+            self.scaled2 = True
+            print("Finished slicing")
 
     def scalef(self, car):
         rlstart = time.time()
@@ -75,16 +105,17 @@ class Map:
         self.hitbox = pygame.image.load(
             rf"levels\{self.index}\hitbox.png"
         ).convert_alpha()
+        self.map = pygame.image.load(rf"levels\{self.index}\map.png").convert_alpha()
         print(f"finished {time.time()-start}")
         print("scaling hitbox...")
         start = time.time()
-        self.scaled_hitbox = pygame.transform.scale_by(
-            self.hitbox, self.scale
-        ).convert_alpha()
+        # self.scaled_hitbox = pygame.transform.scale_by(
+        #    self.hitbox, self.scale
+        # ).convert_alpha()
         print(f"finished {time.time()-start}")
         print("creating scaled rect...")
         start = time.time()
-        self.scaled_rect = self.scaled_hitbox.get_rect()
+        # self.scaled_rect = self.scaled_hitbox.get_rect()
         print(f"finished {time.time()-start}")
         image = self.hitbox
         print("finding goal...")
@@ -141,7 +172,7 @@ class Map:
         print("hitbox:")
         print(self.hitbox)
         print("scaled hitbox:")
-        print(self.scaled_hitbox)
+        # print(self.scaled_hitbox)
         print("calculating tiles...")
         start = time.time()
         # self.tiles = self.image_to_tiles(self.scaled_hitbox, 512)  # unused
@@ -155,6 +186,15 @@ class Map:
         self.tiles = []
         print(f"finished {time.time()-start}")
         # self.scaled = True
+        self.slicing_queue2 = []
+        tile_size = 512
+        for y in range(0, self.map.get_height(), tile_size):
+            for x in range(0, self.map.get_width(), tile_size):
+                self.slicing_queue2.append((x, y))
+
+        self.tiles2 = []
+        print(f"finished {time.time()-start}")
+        # self.scaled = True
         print(f"finished init in {time.time()-rlstart}")
 
     def draw(self, screen, car, off):
@@ -165,4 +205,8 @@ class Map:
 
     def draw_tiles(self, screen, car, off):
         for tile, x, y in self.tiles:
+            screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
+
+    def draw_tiles2(self, screen, car, off):
+        for tile, x, y in self.tiles2:
             screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))

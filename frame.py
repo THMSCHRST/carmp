@@ -9,6 +9,10 @@ from dealer import Client
 import threading
 import sys
 
+ip = input("Enter ip:")
+if ip == "":
+    ip = "tcp://localhost:5555"
+
 # particles lift storing all the particles
 particles = []
 
@@ -41,7 +45,7 @@ threading.Thread(target=level.scalef, daemon=True, args=((car.x, car.y),)).start
 font = pygame.font.SysFont("microsoftsansserif", 50)
 
 r = 0
-while not level.scaled:
+while not level.scaled and not level.scaled2:
     # update listener
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -72,6 +76,7 @@ while not level.scaled:
     )
     try:
         level.slice_step()
+        level.slice_step2()
     except Exception:
         pass
     pygame.display.update()
@@ -103,7 +108,7 @@ oldvel = (0, 0)
 oldpos = (0, 0)
 
 # define client (does the networking)
-client = Client(f"user{random.randint(1,999)}")
+client = Client(f"user{random.randint(1,999)}", ip)
 
 # last velocity and position of all cars
 carvelmp = {}
@@ -173,6 +178,7 @@ while running:
     # render car
     if debug:
         print(5)
+    level.draw_tiles2(screen, car, (car.yo, car.xo))
     car.draw(screen)
     if debug:
         print(6)
