@@ -70,6 +70,10 @@ while not level.scaled:
         l5,
         2.5,
     )
+    try:
+        level.slice_step()
+    except Exception:
+        pass
     pygame.display.update()
     # clock.tick(FPS)
 
@@ -111,9 +115,13 @@ is_on_ground = True  # bool if the car is on road
 # bool used for 30fps networking
 send = True
 
+debug = False
+
 running = True
 while running:
     # make car centered client side and server side when the window is resized
+    if debug:
+        print(1)
     if car.xo != screen.get_width() / 2 or car.yo != screen.get_height() / 2:
         # car.x += (screen.get_width() / 2) - car.xo
         # car.y += (screen.get_width() / 2) - car.yo
@@ -129,7 +137,8 @@ while running:
 
     # backgorund
     screen.fill(C.gray)
-
+    if debug:
+        print(2)
     # spawn the player at correct pos
     if not spawned:
         car.x, car.y = level.rstartpos[0], level.rstartpos[1]
@@ -137,32 +146,52 @@ while running:
         spawned = True
 
     # render the map
-    level.draw(screen, car, (car.yo, car.xo))
+    # level.draw_tiles(screen, car, (car.yo, car.xo), 512)
+    level.draw_tiles(screen, car, (car.yo, car.xo))
     middle_color = screen.get_at((car.xo, car.yo))
     if middle_color == (255, 0, 0, 255):
         is_on_ground = True
+    if debug:
+        print(3)
 
     # render particles
     for p in particles[:]:
         p.tick(screen, car)
         if not p.life:
             particles.remove(p)
+    if debug:
+        print(4)
 
     # update car
     car.tick()
     # render car
+    if debug:
+        print(5)
     car.draw(screen)
-
+    if debug:
+        print(6)
     # do client networking every secon frame
+    if debug:
+        print(6.1)
     if send:
+        if debug:
+            print(6.2)
         for item in client.cars:
             if item[3] != car.id:
                 carposmp[item[3]] = (item[0], item[1])
+        if debug:
+            print(6.3)
         client.tick((round(car.x), round(car.y), round(car.r), car.id, car.xv, car.yv))
+        if debug:
+            print(6.4)
         send = False
     else:
+        if debug:
+            print(6.5)
         send = True  # update send
 
+    if debug:
+        print(7)
     for item in client.cars:
         if item[3] != car.id:  # if car not self
             try:
@@ -170,7 +199,7 @@ while running:
                 if send or carposmp == {}:
                     particlepos = (item[0], item[1])
                 else:
-                    # interpolat particle pos
+                    # interpolate particle pos
                     particlepos = (
                         lerp(
                             carposmp[item[3]][0],
@@ -332,7 +361,8 @@ while running:
             if item[3] in carvelmp:
                 oldcarvelmp[item[3]] = carvelmp[item[3]]
             carvelmp[item[3]] = (item[4], item[5])
-
+            if debug:
+                print(8)
             # draw car after network update
             if send or carposmp == {}:
                 draw(
@@ -346,7 +376,7 @@ while running:
                     l4,
                     l5,
                 )
-            # draw car interpolated (cuz no network update)
+            # draw car interpolated (because theres no network update)
             else:
                 draw(
                     screen,
@@ -359,7 +389,8 @@ while running:
                     l4,
                     l5,
                 )
-
+    if debug:
+        print(9)
     # spawn cloud1 particle at high acceleration
     if min(distance(oldvel, (car.xv, car.yv)), 150) > random.randint(15, 150) / 100:
         particles.append(
@@ -412,6 +443,8 @@ while running:
             )
         )
 
+    if debug:
+        print(10)
     oldvel = (car.xv, car.yv)  # update old vel and pos
     oldpos = (car.x, car.y)
 

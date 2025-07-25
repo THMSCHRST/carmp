@@ -17,14 +17,22 @@ class Client:
         print("Client started.")
 
     def tick(self, car):
+        # print(6.31)
+        print((car[0], car[1], car[2], car[3], round(car[4], 2), round(car[5], 2)))
         # Send car data
         self.socket.send_multipart(
-            [b"", pickle.dumps((car[0], car[1], car[2], car[3], car[4], car[5]))]
+            [
+                b"",
+                pickle.dumps(
+                    (car[0], car[1], car[2], car[3], round(car[4], 2), round(car[5], 2))
+                ),
+            ]
         )
+        # print(6.32)
 
         try:
             _, message = self.socket.recv_multipart(flags=zmq.NOBLOCK)
             self.cars = pickle.loads(message)
             # print("Received cars:", self.cars)
-        except zmq.Again:
-            pass
+        except Exception as e:
+            print(e)
