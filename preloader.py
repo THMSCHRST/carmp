@@ -3,13 +3,14 @@ from collections import OrderedDict
 
 
 class Preloader:
-    def __init__(self, index, max_cache=10):
+    def __init__(self, index, name, max_cache=10):
         self.index = index
         self.requests = queue.Queue()
         self.cache = OrderedDict()  # maps (x, y) -> surface
         self.max_cache = max_cache
         self.thread = threading.Thread(target=self._worker, daemon=True)
         self.thread.start()
+        self.name = name
 
     def request(self, x, y):
         """Call this from the main thread to queue a tile for loading."""
@@ -25,7 +26,7 @@ class Preloader:
             x, y = self.requests.get()
             try:
                 surf = pygame.image.load(
-                    rf"levels\{self.index}\tilesmap\{x}_{y}.png"
+                    rf"levels\{self.index}\{self.name}\{x}_{y}.png"
                 ).convert()
             except Exception as e:
                 print(f"[Preloader] Failed loading tile {x,y}: {e}")

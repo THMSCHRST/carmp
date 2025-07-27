@@ -19,7 +19,9 @@ class Map:
         self.scaled2 = False
         self.startpos = ()
         self.tilechache2 = {}
+        self.tilechache = {}
         self.endpos = []
+        self.savetemp2 = []
         self.savetemp = []
         with open(rf"levels\{index}\options.txt", "r") as file:
             self.scale = float(file.read())
@@ -53,6 +55,7 @@ class Map:
 
     def slice_step(self):
         if hasattr(self, "slicing_queue") and self.slicing_queue:
+            saved = os.path.exists(rf"levels\{self.index}\tileshitbox")
             x, y = self.slicing_queue.pop(0)
             img_w = self.hitbox.get_width()
             img_h = self.hitbox.get_height()
@@ -69,16 +72,26 @@ class Map:
             try:
                 tile = self.hitbox.subsurface(pygame.Rect(x, y, w, h))
                 scaled_tile = pygame.transform.scale_by(tile, self.scale)
-                self.tiles.append((scaled_tile, x * self.scale, y * self.scale))
+                if not saved:
+                    self.savetemp.append((scaled_tile, x * self.scale, y * self.scale))
+                self.tiles.append((None, x * self.scale, y * self.scale))
                 print(
                     f"[TILE] Added scaled tile at ({x * self.scale}, {y * self.scale})"
                 )
             except Exception as e:
                 print(f"[TILE] Error at ({x},{y}): {e}")
 
-        elif not self.slicing_queue:
+        if not self.slicing_queue:
+            if not saved:
+                os.makedirs(f"levels/{self.index}/tileshitbox", exist_ok=True)
+                for tile, sx, sy in self.savetemp:
+                    print("saving")
+                    pygame.image.save(
+                        tile, f"levels/{self.index}/tileshitbox/{sx}_{sy}.png"
+                    )
+            self.savetemp.clear()
             self.scaled = True
-            print("Finished slicing")
+            print("Finished slicing and saved all tiles")
 
     def slice_step2(self):
         if hasattr(self, "slicing_queue2") and self.slicing_queue2:
@@ -100,7 +113,7 @@ class Map:
                 tile = self.map.subsurface(pygame.Rect(x, y, w, h))
                 scaled_tile = pygame.transform.scale_by(tile, self.scale)
                 if not saved:
-                    self.savetemp.append((scaled_tile, x * self.scale, y * self.scale))
+                    self.savetemp2.append((scaled_tile, x * self.scale, y * self.scale))
                 self.tiles2.append((None, x * self.scale, y * self.scale))
                 print(
                     f"[TILE] Added scaled tile at ({x * self.scale}, {y * self.scale})"
@@ -108,15 +121,15 @@ class Map:
             except Exception as e:
                 print(f"[TILE] Error at ({x},{y}): {e}")
 
-        if not self.slicing_queue2 and self.savetemp:
+        if not self.slicing_queue2:
             if not saved:
                 os.makedirs(f"levels/{self.index}/tilesmap", exist_ok=True)
-                for tile, sx, sy in self.savetemp:
+                for tile, sx, sy in self.savetemp2:
                     print("saving")
                     pygame.image.save(
                         tile, f"levels/{self.index}/tilesmap/{sx}_{sy}.png"
                     )
-            self.savetemp.clear()
+            self.savetemp2.clear()
             self.scaled2 = True
             print("Finished slicing and saved all tiles")
 
@@ -202,9 +215,13 @@ class Map:
         # make tile slicing queue
         self.slicing_queue = []
         tile_size = 512
+        self.tile_size = tile_size
         for y in range(0, self.hitbox.get_height(), tile_size):
             for x in range(0, self.hitbox.get_width(), tile_size):
                 self.slicing_queue.append((x, y))
+        self.preloader = Preloader(self.index, "tileshitbox")
+        self.preloadert = threading.Thread(target=self.preloader._worker, daemon=True)
+        self.preloadert.start()
 
         self.tiles = []
         print(f"finished {time.time()-start}")
@@ -215,7 +232,7 @@ class Map:
         for y in range(0, self.map.get_height(), tile_size):
             for x in range(0, self.map.get_width(), tile_size):
                 self.slicing_queue2.append((x, y))
-        self.preloader2 = Preloader(self.index)
+        self.preloader2 = Preloader(self.index, "tilesmap")
         self.preloader2t = threading.Thread(target=self.preloader2._worker, daemon=True)
         self.preloader2t.start()
 
@@ -231,14 +248,29 @@ class Map:
         )
 
     def draw_tiles(self, screen, car, off):
-        for tile, x, y in self.tiles:
+        screen_w, screen_h = screen.get_size()
+        ts = self.tile_size * self.scale
+
+        for _, x, y in self.tiles:
+            # visibility check
             if (
-                x > (car.x - ((self.tile_size * self.scale * 2) + 1))
-                and x < (car.x + screen.get_width())
-                and y < (car.y + screen.get_height())
-                and y > (car.y - ((self.tile_size * self.scale * 2) + 1))
+                x > car.x - (ts * 2)
+                and x < car.x + screen_w
+                and y > car.y - (ts * 2)
+                and y < car.y + screen_h
             ):
-                screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
+                # queue it for loading if not in cache
+                if not self.preloader.get(x, y):
+                    self.preloader.request(x, y)
+                else:
+                    # blit immediately if loaded
+                    surf = self.preloader.get(x, y)
+                    self.tilechache[f"{str(x) + str(y)}"] = surf
+                if f"{str(x) + str(y)}" in self.tilechache:
+                    screen.blit(
+                        self.tilechache[f"{str(x) + str(y)}"],
+                        (-car.x + off[0] + x, -car.y + off[1] + y),
+                    )
 
     def draw_tiles2(self, screen, car, off):
         screen_w, screen_h = screen.get_size()
