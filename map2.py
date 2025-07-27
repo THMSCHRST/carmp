@@ -5,6 +5,7 @@ from functools import lru_cache
 from preloader import Preloader
 import threading
 import time
+from tilechache import TileCache
 
 
 class Map:
@@ -17,7 +18,7 @@ class Map:
         self.tiles2 = []
         self.scaled2 = False
         self.startpos = ()
-        # self.tilechache2 = []
+        self.tilechache2 = {}
         self.endpos = []
         self.savetemp = []
         with open(rf"levels\{index}\options.txt", "r") as file:
@@ -257,4 +258,9 @@ class Map:
                 else:
                     # blit immediately if loaded
                     surf = self.preloader2.get(x, y)
-                    screen.blit(surf, (-car.x + off[0] + x, -car.y + off[1] + y))
+                    self.tilechache2[f"{str(x) + str(y)}"] = surf
+                if f"{str(x) + str(y)}" in self.tilechache2:
+                    screen.blit(
+                        self.tilechache2[f"{str(x) + str(y)}"],
+                        (-car.x + off[0] + x, -car.y + off[1] + y),
+                    )
