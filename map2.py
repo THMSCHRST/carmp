@@ -1,6 +1,9 @@
 import pygame
 import time
 import os
+from functools import lru_cache
+from preloader import Preloader
+import threading
 
 
 class Map:
@@ -13,10 +16,15 @@ class Map:
         self.scaled2 = False
         self.startpos = ()
         self.endpos = []
+        self.savetemp = []
         with open(rf"levels\{index}\options.txt", "r") as file:
             self.scale = float(file.read())
         self.index = index
         # self.overlay = pygame.image.load(rf"levels\{index}\map.png").convert_alpha()
+
+    @lru_cache(maxsize=8)  # keep 100 tiles in memory
+    def load_tile(self, x, y):
+        return pygame.image.load(rf"levels\{self.index}\tilesmap\{x}_{y}.png").convert()
 
     def image_to_tiles(self, image: pygame.Surface, tile_size: int):
         print(f"[DEBUG] Image size: {image.get_size()}, Tile size: {tile_size}")
@@ -55,7 +63,7 @@ class Map:
                 return
 
             try:
-                tile = self.hitbox.subsurface(pygame.Rect(x, y, w, h)).copy()
+                tile = self.hitbox.subsurface(pygame.Rect(x, y, w, h))
                 scaled_tile = pygame.transform.scale_by(tile, self.scale)
                 self.tiles.append((scaled_tile, x * self.scale, y * self.scale))
                 print(
@@ -84,9 +92,10 @@ class Map:
                 return
 
             try:
-                tile = self.map.subsurface(pygame.Rect(x, y, w, h)).copy()
+                tile = self.map.subsurface(pygame.Rect(x, y, w, h))
                 scaled_tile = pygame.transform.scale_by(tile, self.scale)
-                self.tiles2.append((scaled_tile, x * self.scale, y * self.scale))
+                self.savetemp.append((scaled_tile, x * self.scale, y * self.scale))
+                self.tiles2.append((None, x * self.scale, y * self.scale))
                 print(
                     f"[TILE] Added scaled tile at ({x * self.scale}, {y * self.scale})"
                 )
@@ -94,6 +103,19 @@ class Map:
                 print(f"[TILE] Error at ({x},{y}): {e}")
 
         elif not self.slicing_queue:
+            if not os.path.exists(rf"levels\{self.index}\tilesmap"):
+                os.mkdir(rf"levels\{self.index}\tilesmap")
+                print("Saving to disk")
+                for tile, x, y in self.savetemp:
+                    try:
+                        print("Try saving...")
+                        pygame.image.save(
+                            tile, rf"levels/{self.index}\tilesmap\{x}_{y}.png"
+                        )
+                    except Exception as e:
+                        print(e)
+
+            self.savetemp = []
             self.scaled2 = True
             print("Finished slicing")
 
@@ -188,9 +210,13 @@ class Map:
         # self.scaled = True
         self.slicing_queue2 = []
         tile_size = 512
+        self.tile_size = tile_size
         for y in range(0, self.map.get_height(), tile_size):
             for x in range(0, self.map.get_width(), tile_size):
                 self.slicing_queue2.append((x, y))
+        self.preloader2 = Preloader(self.index)
+        self.preloader2t = threading.Thread(target=self.preloader2.tick, daemon=True)
+        self.preloader2t.start()
 
         self.tiles2 = []
         print(f"finished {time.time()-start}")
@@ -205,8 +231,32 @@ class Map:
 
     def draw_tiles(self, screen, car, off):
         for tile, x, y in self.tiles:
-            screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
+            if (
+                x > (car.x - ((self.tile_size * self.scale * 2) + 1))
+                and x < (car.x + screen.get_width())
+                and y < (car.y + screen.get_height())
+                and y > (car.y - ((self.tile_size * self.scale * 2) + 1))
+            ):
+                screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
 
     def draw_tiles2(self, screen, car, off):
         for tile, x, y in self.tiles2:
-            screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
+            if (
+                x > (car.x - ((self.tile_size * self.scale * 2) + 1))
+                and x < (car.x + screen.get_width())
+                and y < (car.y + screen.get_height())
+                and y > (car.y - ((self.tile_size * self.scale * 2) + 1))
+            ):
+                if not (x, y) in self.preloader2.queue:
+                    self.preloader2.queue.append((x, y))
+            else:
+                if (x, y) in self.preloader2.finished:
+                    # print("[Preloader] Removed")
+                    self.preloader2.finished.remove((x, y))
+
+        # print(len(self.preloader2.finished))
+        for item in self.preloader2.finished:
+            screen.blit(
+                item[0],
+                (-car.x + off[0] + item[1], -car.y + off[1] + item[2]),
+            )
