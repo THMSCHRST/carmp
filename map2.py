@@ -4,6 +4,7 @@ import os
 from functools import lru_cache
 from preloader import Preloader
 import threading
+import time
 
 
 class Map:
@@ -13,8 +14,10 @@ class Map:
         self.rendpos = (0, 0)
         self.rstartpos = (0, 0)
         self.scaled = False
+        self.tiles2 = []
         self.scaled2 = False
         self.startpos = ()
+        # self.tilechache2 = []
         self.endpos = []
         self.savetemp = []
         with open(rf"levels\{index}\options.txt", "r") as file:
@@ -78,6 +81,7 @@ class Map:
 
     def slice_step2(self):
         if hasattr(self, "slicing_queue2") and self.slicing_queue2:
+            saved = os.path.exists(rf"levels\{self.index}\tilesmap")
             x, y = self.slicing_queue2.pop(0)
             img_w = self.map.get_width()
             img_h = self.map.get_height()
@@ -94,7 +98,8 @@ class Map:
             try:
                 tile = self.map.subsurface(pygame.Rect(x, y, w, h))
                 scaled_tile = pygame.transform.scale_by(tile, self.scale)
-                self.savetemp.append((scaled_tile, x * self.scale, y * self.scale))
+                if not saved:
+                    self.savetemp.append((scaled_tile, x * self.scale, y * self.scale))
                 self.tiles2.append((None, x * self.scale, y * self.scale))
                 print(
                     f"[TILE] Added scaled tile at ({x * self.scale}, {y * self.scale})"
@@ -102,22 +107,17 @@ class Map:
             except Exception as e:
                 print(f"[TILE] Error at ({x},{y}): {e}")
 
-        elif not self.slicing_queue:
-            if not os.path.exists(rf"levels\{self.index}\tilesmap"):
-                os.mkdir(rf"levels\{self.index}\tilesmap")
-                print("Saving to disk")
-                for tile, x, y in self.savetemp:
-                    try:
-                        print("Try saving...")
-                        pygame.image.save(
-                            tile, rf"levels/{self.index}\tilesmap\{x}_{y}.png"
-                        )
-                    except Exception as e:
-                        print(e)
-
-            self.savetemp = []
+        if not self.slicing_queue2 and self.savetemp:
+            if not saved:
+                os.makedirs(f"levels/{self.index}/tilesmap", exist_ok=True)
+                for tile, sx, sy in self.savetemp:
+                    print("saving")
+                    pygame.image.save(
+                        tile, f"levels/{self.index}/tilesmap/{sx}_{sy}.png"
+                    )
+            self.savetemp.clear()
             self.scaled2 = True
-            print("Finished slicing")
+            print("Finished slicing and saved all tiles")
 
     def scalef(self, car):
         rlstart = time.time()
@@ -215,7 +215,7 @@ class Map:
             for x in range(0, self.map.get_width(), tile_size):
                 self.slicing_queue2.append((x, y))
         self.preloader2 = Preloader(self.index)
-        self.preloader2t = threading.Thread(target=self.preloader2.tick, daemon=True)
+        self.preloader2t = threading.Thread(target=self.preloader2._worker, daemon=True)
         self.preloader2t.start()
 
         self.tiles2 = []
@@ -240,23 +240,21 @@ class Map:
                 screen.blit(tile, (-car.x + off[0] + x, -car.y + off[1] + y))
 
     def draw_tiles2(self, screen, car, off):
-        for tile, x, y in self.tiles2:
-            if (
-                x > (car.x - ((self.tile_size * self.scale * 2) + 1))
-                and x < (car.x + screen.get_width())
-                and y < (car.y + screen.get_height())
-                and y > (car.y - ((self.tile_size * self.scale * 2) + 1))
-            ):
-                if not (x, y) in self.preloader2.queue:
-                    self.preloader2.queue.append((x, y))
-            else:
-                if (x, y) in self.preloader2.finished:
-                    # print("[Preloader] Removed")
-                    self.preloader2.finished.remove((x, y))
+        screen_w, screen_h = screen.get_size()
+        ts = self.tile_size * self.scale
 
-        # print(len(self.preloader2.finished))
-        for item in self.preloader2.finished:
-            screen.blit(
-                item[0],
-                (-car.x + off[0] + item[1], -car.y + off[1] + item[2]),
-            )
+        for _, x, y in self.tiles2:
+            # visibility check
+            if (
+                x > car.x - (ts * 2)
+                and x < car.x + screen_w
+                and y > car.y - (ts * 2)
+                and y < car.y + screen_h
+            ):
+                # queue it for loading if not in cache
+                if not self.preloader2.get(x, y):
+                    self.preloader2.request(x, y)
+                else:
+                    # blit immediately if loaded
+                    surf = self.preloader2.get(x, y)
+                    screen.blit(surf, (-car.x + off[0] + x, -car.y + off[1] + y))
